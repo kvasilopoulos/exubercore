@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.2.0
+
+- Add `exubercore::radf_nested()`: the `radf()` statistics for every sample
+  size `n` in `[n_min, N]` of one path in a single O(N^2) sweep. Every
+  window a smaller `n` uses is a prefix window of the full path, so one pass
+  over the (start, end) triangle -- with running sufficient statistics
+  (`SSR = y'y - b'X'y`) instead of re-formed residuals -- serves all `n`.
+  Returns the `badf` row (`W(0, e)` for every end `e`) plus `gsadf` per `n`;
+  `bsadf` sequences are not returned (exuber's critical values only use
+  `cummax(badf)`). Built for simulating critical-value tables across a whole
+  grid of `n` at once: N = 4000 costs ~0.2 s (lag 0) to ~4 s (lag 4) per
+  path versus hours summed over per-`n` `radf()` calls.
+- Test: `radf_nested()` vs `radf()` on every prefix of a fixed-seed random
+  walk, lag 0/1/2/4, agrees to ~1e-11 (tolerance 1e-7).
+- `radf()` itself is unchanged.
+
 ## v0.1.0
 
 - Initial extraction: `exubercore::radf()`, the recursive least-squares
