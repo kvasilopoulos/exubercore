@@ -40,6 +40,16 @@ host language (R for `exuber`, eventually Python for `pyexuber`) rather
 than being ported here. Don't add them to this library; that's a decision
 already made, not an oversight (see CHANGELOG.md "Scope note").
 
+## Methodology record: `../docs/`
+
+The statistic's provenance (PSY 2015 and the literature around it),
+every downstream method built on `radf()`, and which binding ships it,
+live in `../docs/` (`README.md` is the map, `parity.md` the per-method
+table). This library's own validation record is the golden-fixture suite
+above; if `radf()` ever gains a second routine, its numbers get verified
+in `../docs/replication/` first and frozen into `tests/fixtures/golden/`
+second.
+
 ## Release mechanism
 
 No package registry (this isn't distributed via CRAN/PyPI/vcpkg registry
