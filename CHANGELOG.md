@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.1
+
+- Precision fix for the v0.3.0 closed-form SSR: `radf()` and
+  `radf_nested()` now regress `dy` (rather than `y`) on the same
+  regressors and take the t-statistic on `gamma = beta - 1`, which is the
+  identical statistic but makes `SSR = dy'dy - b'X'dy` a well-conditioned
+  quantity. With `y` as the regressand the R^2 of the level regression is
+  ~1, so the two O(y^2) sums nearly cancelled and the `lag > 0` path was
+  first-order sensitive to Sherman-Morrison drift in `b`: at n = 2000
+  with levels ~500 it was off by ~1e-5 from `lm()` (v0.2.0's explicit
+  residuals: ~2e-8). Now ~3e-11 for lag 0 and lag 1 at that size; golden
+  fixtures 9e-14 (lag 0) / 2e-12 (lag 2). Same speed as v0.3.0.
+
 ## v0.3.0
 
 - `radf()` is now O(n^2) instead of O(n^3): both branches keep running
