@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3.0
+
+- `radf()` is now O(n^2) instead of O(n^3): both branches keep running
+  cross-products across the window grid and use the closed-form
+  `SSR = y'y - b'X'y` that `radf_nested()` introduced, instead of
+  re-forming the full residual vector for every one of the ~n^2/2
+  windows. `lag == 0` drops the per-window `u = y - a - b x` pass;
+  `lag > 0` keeps the Sherman-Morrison update of `(X'X)^-1` but no longer
+  recomputes `X b` per window, and runs on plain arrays rather than
+  Armadillo temporaries. Output is unchanged: golden fixtures agree to
+  2e-13 (lag 0) and 1e-11 (lag 2); `radf_nested()` cross-checks are
+  unchanged. n = 400 goes from ~140 ms to a few ms per path, which is
+  what every Monte Carlo / bootstrap critical-value loop downstream pays
+  per replication.
+
 ## v0.2.0
 
 - Add `exubercore::radf_nested()`: the `radf()` statistics for every sample
