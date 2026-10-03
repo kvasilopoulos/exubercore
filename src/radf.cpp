@@ -27,10 +27,10 @@ arma::vec radf(const arma::mat& yxmat, int min_win, int lag) {
   arma::mat tstat = zeros<mat>(total, total);
   tstat.fill(arma::datum::nan);
 
-  // Both branches keep running cross-products so each window costs O(1)
-  // (lag == 0) or O(nc^2) (lag > 0) instead of re-forming the residual
-  // vector -- the same closed-form SSR radf_nested() uses, which turns the
-  // whole grid from O(n^3) into O(n^2).
+  // Both branches keep running cross-products, so each window costs O(1)
+  // (lag == 0) or O(nc^2) (lag > 0) and the residual vector is never
+  // re-formed. This is the same closed-form SSR that radf_nested() uses, and
+  // it brings the whole grid from O(n^3) down to O(n^2).
   if (lag == 0) {
     const arma::vec x = yxmat.col(1);
     const arma::vec d = yxmat.col(0) - x;  // regress dy on (1, y_{t-1}): t on gamma = beta - 1
@@ -55,9 +55,10 @@ arma::vec radf(const arma::mat& yxmat, int min_win, int lag) {
   } else {
     const int nc = yxmat.n_cols - 1;  // regressors (the first column is y)
     const arma::mat x = yxmat.cols(1, nc);
-    // Regress dy on (1, y_{t-1}, dy lags): same t-statistic as y on the same
-    // regressors (gamma = beta - 1), but SSR = dy'dy - b'X'dy is no longer
-    // a near-cancelling difference of two O(y^2) sums when y has large levels.
+    // Regress dy on (1, y_{t-1}, dy lags). The t-statistic is the same as
+    // for y on the same regressors (gamma = beta - 1), but SSR = dy'dy - b'X'dy
+    // is no longer a difference of two nearly equal O(y^2) sums when y has
+    // large levels.
     const arma::vec y = yxmat.col(0) - yxmat.col(2);
     std::vector<double> xtx(nc * nc), xty(nc), g(nc * nc), b(nc), gx(nc), xe(nc);
 
@@ -149,7 +150,8 @@ arma::vec radf_nested(const arma::mat& yxmat, const arma::ivec& minw, int n_min,
     }
   }
 
-  // Distinct window sizes, so the per-m prefix maxima are tracked once each.
+  // Distinct window sizes, so that the prefix maximum for each m is tracked
+  // only once.
   arma::ivec ms = arma::unique(minw);
   const int M = static_cast<int>(ms.n_elem);
   std::vector<int> m_index(minw.max() + 1, -1);
@@ -158,12 +160,13 @@ arma::vec radf_nested(const arma::mat& yxmat, const arma::ivec& minw, int n_min,
   arma::vec w0(R);  w0.fill(arma::datum::nan);
   // pmax(e) = max over starts j' <= j (so far) of W(j', e).
   arma::vec pmax(R);  pmax.fill(-arma::datum::inf);
-  // gm(a, e) = W with window >= ms(a) ending at e, maximised over starts:
-  // i.e. the bsadf sequence for window ms(a).
+  // gm(a, e) = W with window >= ms(a) ending at e, maximised over starts,
+  // which is the bsadf sequence for window ms(a).
   arma::mat gm(M, R);  gm.fill(-arma::datum::inf);
 
   if (lag == 0) {
-    // Same dy-on-regressors parametrisation as radf(): t on gamma = beta - 1.
+    // Same parametrisation as radf(): dy on the regressors, with the
+    // t-statistic on gamma = beta - 1.
     const arma::vec x = yxmat.col(1);
     const arma::vec y = yxmat.col(0) - x;
     for (int j = 0; j + mmin - 1 < R; ++j) {
@@ -187,9 +190,10 @@ arma::vec radf_nested(const arma::mat& yxmat, const arma::ivec& minw, int n_min,
       }
     }
   } else {
-    // Plain arrays and hand-written nc x nc updates: the per-window work is
-    // a handful of tiny matrix-vector products, and Armadillo temporaries
-    // (heap allocations, BLAS calls) per window cost more than the flops.
+    // We use plain arrays and hand-written nc x nc updates. The work per
+    // window is a handful of tiny matrix-vector products, and the heap
+    // allocations and BLAS calls of Armadillo temporaries cost more than the
+    // arithmetic itself.
     const arma::mat x = yxmat.cols(1, nc);
     const arma::vec y = yxmat.col(0) - yxmat.col(2);  // dy, as in radf()
     std::vector<double> xtx(nc * nc), xty(nc), g(nc * nc), b(nc), gx(nc), xe(nc);
@@ -241,7 +245,8 @@ arma::vec radf_nested(const arma::mat& yxmat, const arma::ivec& minw, int n_min,
     }
   }
 
-  // gsadf for n = sup over ends e <= R_n - 1 of the window-m(n) bsadf.
+  // gsadf for n is the supremum, over ends e <= R_n - 1, of the window-m(n)
+  // bsadf.
   for (int a = 0; a < M; ++a) {
     for (int e = 1; e < R; ++e) {
       if (gm(a, e - 1) > gm(a, e)) gm(a, e) = gm(a, e - 1);

@@ -70,11 +70,11 @@ bool run_case(const std::string& fixtures_dir, const std::string& name) {
 
   // The lag > 0 path performs O(total^2) sequential rank-1 (Sherman-Morrison)
   // updates; floating-point non-associativity across compilers/flags can
-  // accumulate past 1e-12 even for bit-identical source (confirmed by
+  // accumulate past 1e-12 even for identical source. We checked this by
   // compiling the unmodified pre-extraction exuber source with this same
-  // toolchain and diffing against the same golden output -- identical
-  // drift). 1e-12 holds for the closed-form lag == 0 path; lag > 0 gets a
-  // looser bound that still catches a real translation bug.
+  // toolchain and diffing against the same golden output, which showed the
+  // same drift. The closed-form lag == 0 path holds 1e-12. The lag > 0 path
+  // gets a looser bound that would still catch a real translation bug.
   double tol = lag == 0 ? 1e-12 : 1e-9;
   bool ok = max_abs_diff < tol;
   std::printf("[%s] %s: max_abs_diff=%.3e (n=%zu, min_win=%d, lag=%d)\n",
@@ -86,9 +86,10 @@ bool run_case(const std::string& fixtures_dir, const std::string& name) {
 } // namespace
 
 // radf_nested() must agree with radf() run separately on every prefix of
-// the same path. No fixture: a fixed-seed random walk, exuber's psy_minw()
-// per n, both lag paths. Tolerance is loose-ish because the nested sweep
-// uses running sufficient statistics rather than explicit residuals.
+// the same path. There is no fixture. The test uses a fixed-seed random
+// walk, exuber's psy_minw() for each n, and both lag paths. The tolerance is
+// somewhat loose because the nested sweep uses running sufficient statistics
+// and not explicit residuals.
 arma::mat unroot(const arma::vec& y, int lag) {
   const int n = static_cast<int>(y.n_elem);
   const int rows = n - 1 - lag;
